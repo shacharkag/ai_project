@@ -1,6 +1,9 @@
 import pandas as pd
+import random
 import numpy as np
 import os
+
+ITER = 1
 
 PROBLEMATIC_NAMES = {'viloca j.a.': 102167, 'damm m.': 210013, 'lee h.t.': 102703, 'bahrouzyan o.': 103914,
                      'nadal-parera r.': 104745, 'andersen j.f.': 102107, 'vassallo-arguello m.': 103506,
@@ -85,8 +88,11 @@ DICT_DUPLICATE_BY_YEAR = {'2001': DUPLICATE_NAMES_OF_2001, '2002': DUPLICATE_NAM
                           '2019': DUPLICATE_NAMES_OF_2019, '2020': DUPLICATE_NAMES_OF_2020,
                           '2021': DUPLICATE_NAMES_OF_2021}
 
-def add_player_id_to_betting_2001():
-    atp_matches_01 = pd.read_csv('Data/atp_matches/atp_matches_2001.csv')
+ELO_PROBLAMETIC_NAMES = {'martin damm': 210013, 'stan wawrinka': 104527, 'frances tiafoe': 126207}
+
+
+def add_player_id_to_betting():
+    #atp_matches_01 = pd.read_csv('Data/atp_matches/atp_matches_2001.csv')
     #betting_odds_01 = pd.read_excel('Data/betting_odds/2001.xls')
     #elo_rank_01 = pd.read_csv('Data/elo_ranking/Rankings2001.csv', encoding='ISO-8859-1')
 
@@ -135,6 +141,40 @@ def get_player_id_by_last_name_and_first_letter_of_name(last_space_letter_dot, p
         return None
 
 
+def add_player_id_to_elo():
+    players = pd.read_csv('Data/relevant_players.csv')
+
+    players['first_name'] = players['first_name'].str.lower()
+    players['last_name'] = players['last_name'].str.lower()
+    players['full_name'] = players['first_name'] + ' ' + players['last_name']
+
+    for year in range(2000, 2022):
+        elo_rank = pd.read_csv(f'Data/elo_ranking/Rankings{year}.csv', encoding='ISO-8859-1')
+        elo_rank['name'] = elo_rank['name'].str.lower()
+
+        elo_rank['player_id'] = elo_rank['name'].apply(
+            lambda row: get_player_id_by_full_name(row, players, year))
+
+        print(f' for {year}: num of missing ids: {elo_rank.player_id.isna().sum()}')
+
+        elo_rank.to_csv(f'Data/elo_ranking/{year}.csv', index=False)
+
+
+def get_player_id_by_full_name(full_name, players, year):
+    if full_name in ELO_PROBLAMETIC_NAMES.keys():
+        return ELO_PROBLAMETIC_NAMES[full_name]
+    try:
+        players_with_same_full_name = players[players.full_name == full_name]
+        if len(players_with_same_full_name) > 1:
+            print(f'{year}: {full_name} can\'t be recognize, have: {players_with_same_full_name}')
+            return None
+        #print(f'{last_space_letter_dot} -> {str(matches_players.last_name)} {str(matches_players.first_name)} id: {int(matches_players.player_id)}')
+        return int(players_with_same_full_name.player_id)
+    except:
+        print(f'{year}: {full_name} hava other issue')
+        return None
+
+
 def create_csv_of_relevant_players():
     players = pd.read_csv('Data/atp_players.csv')
     all_relevant_players_ids = set()
@@ -164,10 +204,211 @@ def check_relevant_players():
     print(relevant_players.full_name.value_counts())
 
 
+def add_elo_ranking_to_matches_by_year():
+    for year in range(2000, 2022):
+        elo_rank = pd.read_csv(f'Data/elo_ranking/{year}.csv')
+        matches = pd.read_csv(f'Data/atp_matches/atp_matches_{year}.csv')
+        elo_rank.rename(columns={'rank': 'elo_rank'}, inplace=True)
+
+        matches['elo_rank_winner'], matches['elo_points_winner'],  matches['elo_bestRank_winner'],\
+            matches['elo_bestRankDate_winner'], matches['elo_rankDiff_winner'], matches['elo_pointsDiff_winner'],\
+            matches['elo_bestPoints_winner'], = zip(*matches['winner_id'].apply(
+                lambda row: get_elo_ranking_by_id(row, elo_rank)))
+
+        matches['elo_rank_loser'], matches['elo_points_loser'], matches['elo_bestRank_loser'], \
+            matches['elo_bestRankDate_loser'], matches['elo_rankDiff_loser'], matches['elo_pointsDiff_loser'], \
+            matches['elo_bestPoints_loser'], = zip(*matches['loser_id'].apply(
+                lambda row: get_elo_ranking_by_id(row, elo_rank)))
+
+        print(f' for {year}: num of missing elo_rank_winner: {matches.elo_rank_winner.isna().sum()}')
+        print(f' for {year}: num of missing elo_rank_loser: {matches.elo_rank_loser.isna().sum()}')
+
+        matches.to_csv(f'Data/elo_ranking/matches{year}.csv', index=False)
+
+
+def get_elo_ranking_by_id(player_id, elo_ranking):
+    player_data = elo_ranking[elo_ranking.player_id == player_id]
+    if player_data.empty:
+        return None, None, None, None, None, None, None
+
+    return int(player_data['elo_rank']), int(player_data['points']), int(player_data['bestRank']),\
+        player_data['bestRankDate'], int(player_data['rankDiff']), int(player_data['pointsDiff']),\
+        int(player_data['bestPoints'])
+
+
+def add_betting_to_matches():
+    all_betting_oods_features = ['B365W', 'B365L', 'B&WW', 'B&WL', 'CBW', 'CBL']
+    for year in range(2001, 2022):
+        betting_oods = pd.read_csv(f'Data/betting_odds/{year}.csv')
+        matches = pd.read_csv(f'Data/elo_ranking/matches{year}.csv')
+        matches['tourney_date'] = matches['tourney_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
+        all_uniques_dates = matches['tourney_date'].unique()
+        exist_features = betting_oods.columns.values
+
+        """
+        for feature in all_betting_oods_features:
+            if feature not in exist_features:
+                betting_oods[feature] = ""
+        """
+
+        betting_oods['Date'] = betting_oods['Date'].apply(lambda x: pd.to_datetime(x))
+        betting_oods['tourney_date'] = betting_oods['Date'].apply(lambda row: nearest(all_uniques_dates, row))
+
+
+        betting_relevant_cols = betting_oods.drop(['ATP', 'Location', 'Tournament', 'Date', 'Series', 'Surface',
+                                                   'Round', 'Best of', 'Winner', 'Loser', 'WRank', 'LRank', 'W1', 'L1',
+                                                   'W2', 'L2', 'W3', 'L3', 'W4', 'L4', 'W5', 'L5', 'Wsets', 'Lsets',
+                                                   'Comment'], axis='columns').copy()
+
+        #betting_relevant_cols = betting_relevant_cols.drop('Date', axis='columns')
+        result = pd.merge(matches, betting_relevant_cols, how="left",
+                          on=['winner_id', 'loser_id', 'tourney_date'], indicator=True)
+        result.to_csv(f'Data/final{year}.csv', index=False)
+
+
+def nearest(items, pivot):
+    return min(items, key=lambda x: abs(x - pivot))
+
+
+def delete_unrelevant_features():
+    features_to_delete = ['_merge', 'winner_seed', 'winner_entry', 'winner_name', 'loser_seed', 'loser_entry',
+                          'loser_name', 'elo_bestRankDate_loser', 'elo_bestRankDate_winner', 'elo_rankDiff_winner',
+                          'elo_rankDiff_loser', 'elo_pointsDiff_winner', 'elo_pointsDiff_loser','loser_ioc',
+                          'winner_ioc']
+    for year in range(2001, 2022):
+        all_data = pd.read_csv(f'Data/final{year}.csv')
+        filtered_data = all_data.drop(features_to_delete, axis='columns').copy()
+        fix_players_with_2_ids(filtered_data)
+
+        filtered_data.to_csv(f'Data/first_filter{year}.csv', index=False)
+
+
+def fix_players_with_2_ids(data):
+    data.loc[data.winner_id == 103863, 'winner_id'] = 103862
+    data.loc[data.loser_id == 103863, 'loser_id'] = 103862
+
+    data.loc[data.winner_id == 103921, 'winner_id'] = 103920
+    data.loc[data.loser_id == 103921, 'loser_id'] = 103920
+
+    data.loc[data.winner_id == 110685, 'winner_id'] = 104711
+    data.loc[data.loser_id == 110685, 'loser_id'] = 104711
+
+    data.loc[data.winner_id == 104624, 'winner_id'] = 104623
+    data.loc[data.loser_id == 104624, 'loser_id'] = 104623
+
+
+def add_scores_features():
+    for year in range(2001, 2022):
+        data = pd.read_csv(f'Data/first_filter{year}.csv')
+        data = data[~data.score.str.contains("RET")]
+        data = data[~data.score.str.contains("Played and unfinished")]
+        data = data[~data.score.str.contains("W/O")]
+        data = data[~data.score.str.contains("In Progress")]
+        data = data[~data.score.str.contains("Played and abandoned")]
+        data = data[~data.score.str.contains("Walkover")]
+        data = data[~data.score.str.contains("DEF")]
+        data = data[~data.score.str.contains("Def")]
+        data = data[~data.score.str.contains("Unfinished")]
+        data = data[~data.score.str.contains("Apr")]
+
+        data['p1_set1_score'], data['p2_set1_score'], data['set1_breakpoint_score'], \
+        data['p1_set2_score'], data['p2_set2_score'], data['set2_breakpoint_score'], \
+        data['p1_set3_score'], data['p2_set3_score'], data['set3_breakpoint_score'], \
+        data['p1_set4_score'], data['p2_set4_score'], data['set4_breakpoint_score'], \
+        data['p1_set5_score'], data['p2_set5_score'], data['set5_breakpoint_score'] = zip(*data['score'].apply(
+            lambda row: get_scores_by_sets(row, year)))
+
+        data_with_scores = data.drop('score', axis='columns').copy()
+        data_with_scores.to_csv(f'Data/first_filter{year}scores.csv', index=False)
+
+
+def get_scores_by_sets(score_str, year):
+    data_to_return = []
+    sets_scores = score_str.split()
+    for s_set in sets_scores:
+        try:
+            p1_score, rest = s_set.split('-')
+            if '(' in rest:
+                p2_score, rest = rest.split('(')
+                brkpoint_score = rest[:-1]
+            else:
+                p2_score = rest
+                brkpoint_score = 0
+        except:
+            values_to_add = 15 - len(data_to_return)
+            data_to_return.extend([0] * values_to_add)
+            print(year, score_str, data_to_return)
+            return data_to_return
+        data_to_return.append(p1_score)
+        data_to_return.append(p2_score)
+        data_to_return.append(brkpoint_score)
+    values_to_add = 15 - len(data_to_return)
+    data_to_return.extend([0] * values_to_add)
+    return data_to_return
+
+
+def misatch_p1_p2():
+    for year in range(2001, 2022):
+        print(year)
+        data = pd.read_csv(f'Data/p1p2_first_ver{year}.csv')
+        features_to_swap = [label[3:] for label in data.columns.values if 'p2_' in label]
+        for index, row in data.iterrows():
+            if bool(random.getrandbits(1)):
+                data.at[index, 'p1_won'] = 0
+                for feature in features_to_swap:
+                    try:
+                        player1_val = 0 if pd.isnull(data.at[index, f'p1_{feature}']) else row[f'p1_{feature}']
+                        player2_val = 0 if pd.isnull(data.at[index, f'p2_{feature}']) else row[f'p2_{feature}']
+                        data.at[index, f'p1_{feature}'], data.at[index, f'p2_{feature}'] = player2_val,\
+                                                                                                 player1_val
+                    except:
+                        print(year, feature, index)
+                        print(player1_val, player2_val)
+        data.to_csv(f'Data/p1p2_after_mismatch{year}.csv', index=False)
+
+
+def change_winner_loset_to_p1_p2():
+    rename_dict = {'winner_id': 'p1_id', 'winner_hand': 'p1_hand', 'winner_ht': 'p1_ht', 'winner_age': 'p1_age',
+                   'loser_id': 'p2_id', 'loser_hand': 'p2_hand', 'loser_ht': 'p2_ht', 'loser_age': 'p2_age',
+                   'w_ace': 'p1_ace', 'w_df': 'p1_df', 'w_svpt': 'p1_svpt', 'w_1stIn': 'p1_1stIn',
+                   'w_1stWon': 'p1_1stWon', 'w_2ndWon': 'p1_2ndWon', 'w_SvGms': 'p1_SvGms', 'w_bpSaved': 'p1_bpSaved',
+                   'w_bpFaced': 'p1_bpFaced', 'l_ace': 'p2_ace', 'l_df': 'p2_df', 'l_svpt': 'p2_svpt',
+                   'l_1stIn': 'p2_1stIn', 'l_1stWon': 'p2_1stWon', 'l_2ndWon': 'p2_2ndWon', 'l_SvGms': 'p2_SvGms',
+                   'l_bpSaved': 'p2_bpSaved', 'l_bpFaced': 'p2_bpFaced', 'winner_rank': 'p1_atp_rank',
+                   'winner_rank_points': 'p1_atp_rank_points', 'loser_rank': 'p2_atp_rank',
+                   'loser_rank_points': 'p2_atp_rank_points', 'elo_rank_winner': 'p1_elo_rank',
+                   'elo_points_winner': 'p1_elo_points', 'elo_bestRank_winner': 'p1_elo_bestRank',
+                   'elo_bestPoints_winner': 'p1_elo_bestPoints', 'elo_rank_loser': 'p2_elo_rank',
+                   'elo_points_loser': 'p2_elo_points', 'elo_bestRank_loser': 'p2_elo_bestRank',
+                   'elo_bestPoints_loser': 'p2_elo_bestPoints'}
+    rename_dict_optional = {'B365W': 'p1_B365', 'B365L': 'p2_B365', 'CBW': 'p1_CB', 'CBL': 'p2_CB', 'GBW': 'p1_GB',
+                            'GBL': 'p2_GB', 'IWW': 'p1_IW', 'IWL': 'p2_IW', 'SBW': 'p1_SB', 'SBL': 'p2_SB',
+                            'UBW': 'p1_UB', 'UBL': 'p2_UB', 'SJW': 'p1_SJ', 'SJL': 'p2_SJ', 'EXW': 'p1_EX',
+                            'EXL': 'p2_EX', 'WPts': 'p1_Pts', 'LPts': 'p2_Pts', 'PSW': 'p1_PS', 'PSL': 'p2_PS',
+                            'LBW': 'p1_LB', 'LBL': 'p2_LB', 'MaxW': 'p1_Max', 'MaxL': 'p2_Max', 'AvgW': 'p1_Avg',
+                            'AvgL': 'p2_Avg', 'B&WW': 'p1_B&W', 'B&WL': 'p2_B&W'}
+    for year in range(2001, 2022):
+        data = pd.read_csv(f'Data/first_filter{year}scores.csv')
+        data['p1_won'] = 1
+        data = data.rename(columns=rename_dict)
+        curr_col = data.columns.values
+        for label in rename_dict_optional.keys():
+            if label in curr_col:
+                data = data.rename(columns={label: rename_dict_optional[label]})
+        data.to_csv(f'Data/p1p2_first_ver{year}.csv', index=False)
+
+
 def main():
     #create_csv_of_relevant_players()
     #check_relevant_players()
-    add_player_id_to_betting_2001()
+    #add_player_id_to_betting()
+    #add_player_id_to_elo()
+    #add_elo_ranking_to_matches_by_year()
+    #add_betting_to_matches()
+    #delete_unrelevant_features()
+    #add_scores_features()
+    #change_winner_loset_to_p1_p2()
+    #misatch_p1_p2()
 
 
 if __name__ == '__main__':
