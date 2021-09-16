@@ -399,6 +399,7 @@ def change_winner_loset_to_p1_p2():
 
 
 def main():
+    pass
     #create_csv_of_relevant_players()
     #check_relevant_players()
     #add_player_id_to_betting()
