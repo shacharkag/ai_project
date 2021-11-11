@@ -777,7 +777,7 @@ def create_three_test_tables():
 def main():
     #print_all_features()  # mainly for debug
     #find_correlation()
-    normalize_betting_odds_features()
+    normalize_betting_odds_features()  # the data splits to train and test here!
     drop_unsued_features()
     remove_extra_chars_from_sets()
     create_all_years_uniform_data()
