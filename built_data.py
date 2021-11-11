@@ -3,7 +3,6 @@ import random
 import numpy as np
 import os
 
-ITER = 1
 
 PROBLEMATIC_NAMES = {'viloca j.a.': 102167, 'damm m.': 210013, 'lee h.t.': 102703, 'bahrouzyan o.': 103914,
                      'nadal-parera r.': 104745, 'andersen j.f.': 102107, 'vassallo-arguello m.': 103506,
@@ -88,18 +87,24 @@ DICT_DUPLICATE_BY_YEAR = {'2001': DUPLICATE_NAMES_OF_2001, '2002': DUPLICATE_NAM
                           '2019': DUPLICATE_NAMES_OF_2019, '2020': DUPLICATE_NAMES_OF_2020,
                           '2021': DUPLICATE_NAMES_OF_2021}
 
-ELO_PROBLAMETIC_NAMES = {'martin damm': 210013, 'stan wawrinka': 104527, 'frances tiafoe': 126207}
+ELO_PROBLAMETIC_NAMES = {'martin damm': 210013, 'stan wawrinka': 104527, 'frances tiafoe': 126207,
+                         'boris becker': 101414, 'petr korda': 101434, 'christophe van garsse': 102419,
+                         'brett steven': 101601, 'sandon stolle': 101776, 'david nainkin': 101805,
+                         'danny sapsford': 101591, 'chris wilkinson': 101681, 'geoff grant': 101688,
+                         'rodolphe gilbert': 101549, 'carlos costa': 119129, 'joseph lizardo': 101563,
+                         'donald johnson': 101515, 'borut urh': 102436, 'hideki kaneko': 102348,
+                         'marco meneschincheri': 102050}
 
 
 def add_player_id_to_betting():
-    #atp_matches_01 = pd.read_csv('Data/atp_matches/atp_matches_2001.csv')
-    #betting_odds_01 = pd.read_excel('Data/betting_odds/2001.xls')
-    #elo_rank_01 = pd.read_csv('Data/elo_ranking/Rankings2001.csv', encoding='ISO-8859-1')
-
+    """
+    Add the winner and loser IDs for every match in betting odds data files.
+    The IDs are saved in Data/relevant_players file, having also first name and last name columns.
+    betting odds files have winner and loser last name and first letter of first name.
+    The func fits the name from the betting odds data to the right player in relevant player table.
+    The new tables with the IDs is saved to folder Data/betting_odds/ named by the year.
+    """
     players = pd.read_csv('Data/relevant_players.csv')
-
-    #atp_matches_01['tourney_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
-
     players['first_name'] = players['first_name'].str.lower()
     players['last_name'] = players['last_name'].str.lower()
 
@@ -120,30 +125,55 @@ def add_player_id_to_betting():
         betting_odds.to_csv(f'Data/betting_odds/{year}.csv', index=False)
 
 
-def get_player_id_by_last_name_and_first_letter_of_name(last_space_letter_dot, players, year):
+def get_player_id_by_last_name_and_first_letter_of_name(last_space_letter_dot: str, players: pd.DataFrame, year: int):
+    """
+    return player ID by find the player in relevant players, based on last name and first letter of first name.
+    There are names which can't be specified by the format name provided, after analyzing all of this names,
+    add them (manualy) to the dictionaries above.
+    :param last_space_letter_dot: string represent player name in format: <last name> <first letter of first name>.
+    :param players: table with full players name near to their ID
+    :param year: the year of the file we are process - for debug
+    :return: The ID of the player
+    """
     last_space_letter_dot = last_space_letter_dot.strip()
+
     if last_space_letter_dot in PROBLEMATIC_NAMES.keys():
         return PROBLEMATIC_NAMES[last_space_letter_dot]
     duplicated_names_of_this_year = DICT_DUPLICATE_BY_YEAR[str(year)]
+
     if last_space_letter_dot in duplicated_names_of_this_year.keys():
         return duplicated_names_of_this_year[last_space_letter_dot]
+
     try:
         last_name, first_letter_of_name = last_space_letter_dot.rsplit(' ', 1)
         players_with_same_last_name = players[players.last_name == last_name]
-        matches_players = players_with_same_last_name[players_with_same_last_name.first_name.str[0].isin([first_letter_of_name[0]])]
+        matches_players = players_with_same_last_name[players_with_same_last_name
+            .first_name.str[0].isin([first_letter_of_name[0]])]
+
         if len(matches_players) > 1:
             print(f'{year}: {last_space_letter_dot} can\'t be recognize, have: {matches_players}')
             return None
-        #print(f'{last_space_letter_dot} -> {str(matches_players.last_name)} {str(matches_players.first_name)} id: {int(matches_players.player_id)}')
+        # Print for debug:
+        """
+        print(f'{last_space_letter_dot} -> {str(matches_players.last_name)} {str(matches_players.first_name)} '
+              f'id: {int(matches_players.player_id)}')
+        """
         return int(matches_players.player_id)
+
     except:
-        print(f'{year}: {last_space_letter_dot} hava other issue')
+        print(f'{year}: {last_space_letter_dot} have other issue')
         return None
 
 
 def add_player_id_to_elo():
+    """
+    Add the player ID for every player in elo ranking data files.
+    The IDs are saved in Data/relevant_players file, having also first name and last name columns.
+    elo ranking files have full name column.
+    The func fits the name from the elo ranking data to the right player in relevant player table.
+    The new tables with the IDs is saved to folder Data/elo_ranking/ named by the year.
+    """
     players = pd.read_csv('Data/relevant_players.csv')
-
     players['first_name'] = players['first_name'].str.lower()
     players['last_name'] = players['last_name'].str.lower()
     players['full_name'] = players['first_name'] + ' ' + players['last_name']
@@ -151,60 +181,77 @@ def add_player_id_to_elo():
     for year in range(2000, 2022):
         elo_rank = pd.read_csv(f'Data/elo_ranking/Rankings{year}.csv', encoding='ISO-8859-1')
         elo_rank['name'] = elo_rank['name'].str.lower()
-
         elo_rank['player_id'] = elo_rank['name'].apply(
             lambda row: get_player_id_by_full_name(row, players, year))
-
         print(f' for {year}: num of missing ids: {elo_rank.player_id.isna().sum()}')
-
         elo_rank.to_csv(f'Data/elo_ranking/{year}.csv', index=False)
 
 
-def get_player_id_by_full_name(full_name, players, year):
+def get_player_id_by_full_name(full_name: str, players: pd.DataFrame, year: int):
+    """
+    return player ID by find the player in relevant players, based on full name.
+    There are names which can't be specified by the format name provided, (second names' ect),
+    add them (manualy) to the dictionaries above.
+    :param full_name: string represent the players' full name in format: <first name> <last name>
+    :param players: table with full players name near to their ID
+    :param year: the year of the file we are process - for debug
+    :return: The ID of the player
+    """
     if full_name in ELO_PROBLAMETIC_NAMES.keys():
         return ELO_PROBLAMETIC_NAMES[full_name]
+
     try:
         players_with_same_full_name = players[players.full_name == full_name]
+
         if len(players_with_same_full_name) > 1:
             print(f'{year}: {full_name} can\'t be recognize, have: {players_with_same_full_name}')
             return None
-        #print(f'{last_space_letter_dot} -> {str(matches_players.last_name)} {str(matches_players.first_name)} id: {int(matches_players.player_id)}')
+
         return int(players_with_same_full_name.player_id)
+
     except:
         print(f'{year}: {full_name} hava other issue')
         return None
 
 
 def create_csv_of_relevant_players():
+    """
+    create subtable from the original Data/atp_players.csv, which contains players who played in the 60's-90's.
+    the players in the relevant players are ones that participated in matches from 2000.
+    The matches are saved in Data/atp_matches/ folder.
+    """
     players = pd.read_csv('Data/atp_players.csv')
     all_relevant_players_ids = set()
 
     for atp_match_file in os.listdir('Data/atp_matches/'):
         if atp_match_file.endswith(".csv"):
             atp_matches = pd.read_csv('Data/atp_matches/' + atp_match_file)
-            #ids_of_year = set(atp_matches.winner_id) + set(atp_matches.loser_id)
-            #print(set(atp_matches.winner_id.tolist()))
             all_relevant_players_ids = all_relevant_players_ids.union(set(atp_matches.winner_id.tolist()))
             all_relevant_players_ids = all_relevant_players_ids.union(set(atp_matches.loser_id.tolist()))
-            continue
         else:
             continue
 
     print(f'relevant ids: {all_relevant_players_ids}')
     relevant_players = players[players.player_id.isin(all_relevant_players_ids)]
     print(relevant_players.info)
-    print()
-    print(players.info)
-    #relevant_players.to_csv('Data/relevant_players.csv', index=False)
+    relevant_players.to_csv('Data/relevant_players.csv', index=False)
 
 
 def check_relevant_players():
+    """
+    Verify the relevant players table created as expected - for debug
+    """
     relevant_players = pd.read_csv('Data/relevant_players.csv')
     relevant_players['full_name'] = relevant_players['first_name'] + ' ' + relevant_players['last_name']
     print(relevant_players.full_name.value_counts())
 
 
 def add_elo_ranking_to_matches_by_year():
+    """
+    Add the elo ranking features to the matches data. elo features changed once a year, though all matches of a player
+    in same year will get the same elo ranking value.
+    the new tables will be saved at Data/elo_ranking/ by format matches{year}.csv
+    """
     for year in range(2000, 2022):
         elo_rank = pd.read_csv(f'Data/elo_ranking/{year}.csv')
         matches = pd.read_csv(f'Data/atp_matches/atp_matches_{year}.csv')
@@ -226,7 +273,13 @@ def add_elo_ranking_to_matches_by_year():
         matches.to_csv(f'Data/elo_ranking/matches{year}.csv', index=False)
 
 
-def get_elo_ranking_by_id(player_id, elo_ranking):
+def get_elo_ranking_by_id(player_id: int, elo_ranking: pd.DataFrame):
+    """
+    Get all features related to elo ranking of a specific player.
+    :param player_id: player ID
+    :param elo_ranking: ranking table of a specific year
+    :return: tuple of all player's values of elo ranking
+    """
     player_data = elo_ranking[elo_ranking.player_id == player_id]
     if player_data.empty:
         return None, None, None, None, None, None, None
@@ -237,6 +290,12 @@ def get_elo_ranking_by_id(player_id, elo_ranking):
 
 
 def add_betting_to_matches():
+    """
+    merge betting odds features to matches data. for every betting odds example, add column of the closest match in
+    matches data (the dates are not equall for sure, because in matches data the dates are usually the Monday of the
+    tournament week) and then join then by winnerID, loserID and date.
+    :return: save the new merged table to csv file.
+    """
     all_betting_oods_features = ['B365W', 'B365L', 'B&WW', 'B&WL', 'CBW', 'CBL']
     for year in range(2001, 2022):
         betting_oods = pd.read_csv(f'Data/betting_odds/{year}.csv')
@@ -267,13 +326,23 @@ def add_betting_to_matches():
 
 
 def nearest(items, pivot):
+    """
+    Find the nearest value. in use to find the nearest date.
+    :param items: List of items to find the neatest from them.
+    :param pivot: The value to find the nearest from.
+    :return: The nearest value.
+    """
     return min(items, key=lambda x: abs(x - pivot))
 
 
-def delete_unrelevant_features():
+def delete_irrelevant_features():
+    """
+    Delete irrelevant feature (explain for each of them in the report).
+    :return: save the new table to csv.
+    """
     features_to_delete = ['_merge', 'winner_seed', 'winner_entry', 'winner_name', 'loser_seed', 'loser_entry',
                           'loser_name', 'elo_bestRankDate_loser', 'elo_bestRankDate_winner', 'elo_rankDiff_winner',
-                          'elo_rankDiff_loser', 'elo_pointsDiff_winner', 'elo_pointsDiff_loser','loser_ioc',
+                          'elo_rankDiff_loser', 'elo_pointsDiff_winner', 'elo_pointsDiff_loser', 'loser_ioc',
                           'winner_ioc']
     for year in range(2001, 2022):
         all_data = pd.read_csv(f'Data/final{year}.csv')
@@ -284,6 +353,10 @@ def delete_unrelevant_features():
 
 
 def fix_players_with_2_ids(data):
+    """
+    We found some players that have 2 IDs (but are the same one). so change the Ids to one ID.
+    :param data: The Dataframe to change
+    """
     data.loc[data.winner_id == 103863, 'winner_id'] = 103862
     data.loc[data.loser_id == 103863, 'loser_id'] = 103862
 
@@ -298,6 +371,12 @@ def fix_players_with_2_ids(data):
 
 
 def add_scores_features():
+    """
+    Delete rows of matches without final result/technical win.
+    Transform the score feature from format: a-b(c) d-e(f)... to 15 features named:
+    p1_set{i}_score, p1_set{i}_score, set{i}_breakpoint_score
+    :return: save the new table to csv file.
+    """
     for year in range(2001, 2022):
         data = pd.read_csv(f'Data/first_filter{year}.csv')
         data = data[~data.score.str.contains("RET")]
@@ -323,6 +402,15 @@ def add_scores_features():
 
 
 def get_scores_by_sets(score_str, year):
+    """
+    Split the score string initial format to 15 separated values.
+    a-b(c) d-e(f) g-h(i) j-k(l) m-n(o) --> [a, b, c, d, e, f, g, h, i, j, k, l, m, n, o]
+    a-b(c) d-e(f) g-h(i) --> [a, b, c, d, e, f, g, h, i, 0, 0, 0, 0, 0, 0]
+    a-b d-e(f) g-h(i) j-k(l) m-n --> [a, b, 0, d, e, f, g, h, i, j, k, l, m, n, 0]
+    :param score_str: String represent all match scores
+    :param year: The year of the match, for debug
+    :return: list of all scores
+    """
     data_to_return = []
     sets_scores = score_str.split()
     for s_set in sets_scores:
@@ -348,6 +436,11 @@ def get_scores_by_sets(score_str, year):
 
 
 def misatch_p1_p2():
+    """
+    Random rows to swap the players data. change the labels from winner_id to p1_id and from loser_id to p2_id.
+    Add a target label for p1_won -> if the row doesn't randomized put 1, else put 0.
+    :return: save the new table to a csv file.
+    """
     for year in range(2001, 2022):
         print(year)
         data = pd.read_csv(f'Data/p1p2_first_ver{year}.csv')
@@ -368,6 +461,10 @@ def misatch_p1_p2():
 
 
 def change_winner_loset_to_p1_p2():
+    """
+    Remane all 'winner' labels to 'p1' and all 'loser' labels to 'p2'
+    :return: save the new table to a csv file.
+    """
     rename_dict = {'winner_id': 'p1_id', 'winner_hand': 'p1_hand', 'winner_ht': 'p1_ht', 'winner_age': 'p1_age',
                    'loser_id': 'p2_id', 'loser_hand': 'p2_hand', 'loser_ht': 'p2_ht', 'loser_age': 'p2_age',
                    'w_ace': 'p1_ace', 'w_df': 'p1_df', 'w_svpt': 'p1_svpt', 'w_1stIn': 'p1_1stIn',
@@ -398,6 +495,16 @@ def change_winner_loset_to_p1_p2():
         data.to_csv(f'Data/p1p2_first_ver{year}.csv', index=False)
 
 
+def built_all_data_before_processing_table():
+    """
+    Concat all years matches together to one big table.
+    :return: save the new table to a csv file.
+    """
+    all_years = [pd.read_csv(f'Data/final{year}.csv') for year in range(2001, 2022)]
+    all_years_without_process = pd.concat(all_years)
+    all_years_without_process.to_csv('Data/all_years_without_process.csv')
+
+
 def main():
     pass
     #create_csv_of_relevant_players()
@@ -410,6 +517,8 @@ def main():
     #add_scores_features()
     #change_winner_loset_to_p1_p2()
     #misatch_p1_p2()
+
+    built_all_data_before_processing_table()
 
 
 if __name__ == '__main__':
