@@ -1,0 +1,10 @@
+.idea
+__pycach__
+*.png
+.docx
+tennis_atp*
+tennis_wta*
+tennis_slam*
+Data/final*
+Data/first*
+Data/p1*
