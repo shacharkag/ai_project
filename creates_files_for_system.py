@@ -25,8 +25,8 @@ def create_ranking_table():
     Create table of elo ranking of players by each year, for easy finding of player's elo ranking in a specific year.
     :return: save the new table in files folder. (the folder contains all necessary files for the system)
     """
-    atp_ranks_00s = pd.read_csv('tennis_atp/atp_rankings_00s.csv')
-    atp_ranks_10s = pd.read_csv('tennis_atp/atp_rankings_10s.csv')
+    atp_ranks_00s = pd.read_csv('Data/atp_rankings_00s.csv')
+    atp_ranks_10s = pd.read_csv('Data/atp_rankings_10s.csv')
 
     atp_ranks_00s['ranking_date'] = atp_ranks_00s['ranking_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
     atp_ranks_10s['ranking_date'] = atp_ranks_10s['ranking_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
