@@ -77,7 +77,7 @@ def create_height_track_table():
     """
     all_dates_and_heights = []
     for year in range(2001, 2022):
-        year_matches = pd.read_csv(f'Data/first_filter{year}.csv')
+        year_matches = pd.read_csv(f'Data/atp_matches/atp_matches_{year}.csv')
         p1_hts = year_matches[['tourney_date', 'winner_id', 'winner_ht']].copy()
         p1_hts.rename(columns={'winner_id': 'player_id', 'winner_ht': 'player_ht'}, inplace=True)
         p2_hts = year_matches[['tourney_date', 'loser_id', 'loser_ht']].copy()

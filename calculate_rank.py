@@ -59,7 +59,7 @@ def get_last_q_elo_rank(year, q):
     if q == 1:
         year -= 1
         q = 4
-    elo_tbl = pd.read_csv(f'Data/elo_ranking/{year}q{q}.csv')
+    elo_tbl = pd.read_csv(f'Data/Quest4/{year}q{q}.csv')
     return elo_tbl.copy()
 
 
@@ -171,7 +171,7 @@ def calc_rank_of_q(data, year, q, debug_per_q=False):
             elo_ranks.loc[elo_ranks['player_id'] == player2, f'points{k}'] = p2_elo_points_new
 
     # Get the real elo rank at the end of the q. This tabe is sorted from the first rank to the last
-    final_q_elo_rank = pd.read_csv(f'Data/elo_ranking/{year}q{q}.csv')
+    final_q_elo_rank = pd.read_csv(f'Data/Quest4/{year}q{q}.csv')
     real_ranks = dict()
     for i, player_elo_data in final_q_elo_rank.iterrows():
         real_ranks[player_elo_data.loc['player_id']] = i + 1

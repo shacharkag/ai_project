@@ -64,7 +64,7 @@ def add_id_to_elo_tbl():
 
             print(f' for {year}: num of missing ids: {elo_tbl.player_id.isna().sum()}')
 
-            elo_tbl.to_csv(f'Data/elo_ranking/{year}q{q}.csv', index=False)
+            elo_tbl.to_csv(f'Data/Quest4/{year}q{q}.csv', index=False)
     print(f'max elo is: {max_elo}')
 
 
@@ -79,7 +79,7 @@ def find_all_players_ranks():
         for q in range(1, 5):
             if (year == 2020 and q == 2) or (year == 2021 and q == 4):
                 continue
-            elo_tbl = pd.read_csv(f'Data/elo_ranking/{year}q{q}.csv')
+            elo_tbl = pd.read_csv(f'Data/Quest4/{year}q{q}.csv')
             elo_tbl.drop(['name'], axis='columns', inplace=True)
             # All players IDs who has reported elo rank in the end of this q
             players_have_elo = set(elo_tbl['player_id'].values)
