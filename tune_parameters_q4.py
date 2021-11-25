@@ -457,7 +457,8 @@ def main():
     #average_dummy_r2 = -0.6610280962482579
 
     print('***RIDGE**')
-    best_ridge_alpha_mse, best_ridge_alpha_r2 = tune_hyperparameter(Ridge, data, np.logspace(-5, 8, num=14), average_dummy_mse, average_dummy_r2)
+    best_ridge_alpha_mse, best_ridge_alpha_r2 = tune_hyperparameter(Ridge, data, np.logspace(-5, 8, num=14),
+                                                                    average_dummy_mse, average_dummy_r2, x_log=True)
     print('weights for best mse params:')
     print_weights_features_by_coef(data, Ridge, best_ridge_alpha_mse)
     print('weights for best r2 params:')
