@@ -194,7 +194,7 @@ def fill_players_statistics(year, q):
 
         print(player_stat)
         players_statistic = players_statistic.append(player_stat, ignore_index=True)
-    result = pd.merge(elo_tbl, players_statistic, how="left", on='player_id', indicator=True)
+    result = pd.merge(elo_tbl, players_statistic, how="left", on='player_id')
     result.to_csv(f'Data/Quest4/players_statistics_{year}q{q}.csv', index=False)
 
 

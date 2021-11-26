@@ -337,7 +337,7 @@ def add_betting_to_matches():
 
         #betting_relevant_cols = betting_relevant_cols.drop('Date', axis='columns')
         result = pd.merge(matches, betting_relevant_cols, how="left",
-                          on=['winner_id', 'loser_id', 'tourney_date'], indicator=True)
+                          on=['winner_id', 'loser_id', 'tourney_date'])
         result.to_csv(f'Data/final{year}.csv', index=False)
 
 
