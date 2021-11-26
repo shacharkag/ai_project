@@ -49,7 +49,7 @@ def add_id_to_elo_tbl():
                 # second 2020 quarterly is missing because of covid-19,
                 # forth 2021 quarterly is yet to be done
                 continue
-            elo_tbl = pd.read_csv(f'Data/elo_ranking/Qest4/Rankings{year}q{q}.csv', encoding='ISO-8859-1')
+            elo_tbl = pd.read_csv(f'Data/elo_ranking/Quest4/Rankings{year}q{q}.csv', encoding='ISO-8859-1')
             elo_tbl = elo_tbl.rename(columns={'rank': 'elo_rank'})
             elo_tbl['name'] = elo_tbl['name'].str.lower()
             # Add ID for each row in elo table
@@ -99,7 +99,7 @@ def find_all_players_ranks():
                         {'elo_rank': 250 + i, 'player_id': player, 'points': None, 'bestRank': 250 + i,
                          'rankDiff': None, 'pointsDiff': None, 'bestPoints': None}, ignore_index=True)
 
-            elo_tbl.to_csv(f'Data/elo_ranking/Qest4/ranks_fill_missing_players{year}q{q}.csv', index=False)
+            elo_tbl.to_csv(f'Data/elo_ranking/Quest4/ranks_fill_missing_players{year}q{q}.csv', index=False)
 
 
 def get_last_atp_rank_for_missing_elo(year, q, set_of_players):
@@ -152,7 +152,7 @@ def fill_players_statistics(year, q):
     :param q: number of the quarter
     :return: save the statistics table to csv file
     """
-    elo_tbl = pd.read_csv(f'Data/elo_ranking/Qest4/ranks_fill_missing_players{year}q{q}.csv')
+    elo_tbl = pd.read_csv(f'Data/elo_ranking/Quest4/ranks_fill_missing_players{year}q{q}.csv')
     matches_this_q = get_matches_by_year_and_q(year, q)
     players_had_match_this_q = set(matches_this_q['winner_id'].values).union(matches_this_q['loser_id'].values)
     all_players_in_q = set(elo_tbl['player_id'])
