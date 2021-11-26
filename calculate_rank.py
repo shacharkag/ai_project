@@ -214,7 +214,7 @@ def calc_rank_of_q(data, year, q, debug_per_q=False):
         print(f"R2 for year: {year}, q: {q}, k={k} is "
               f"{r2_score(player_predict_vs_real_rank[k]['real'], player_predict_vs_real_rank[k]['predicted'])}")
 
-        sorted_elo.to_csv(f'Data/Quest4/final/final_rank{year}q{q}k{k}.csv')
+        sorted_elo.to_csv(f'files/Question_4_final_results/final_rank{year}q{q}k{k}.csv')
     return hit_hist, player_predict_vs_real_rank
 
 
