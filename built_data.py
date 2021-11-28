@@ -300,9 +300,9 @@ def get_elo_ranking_by_id(player_id: int, elo_ranking: pd.DataFrame):
     if player_data.empty:
         return None, None, None, None, None, None, None
 
-    return int(player_data['elo_rank']), int(player_data['points']), int(player_data['bestRank']),\
-        player_data['bestRankDate'], int(player_data['rankDiff']), int(player_data['pointsDiff']),\
-        int(player_data['bestPoints'])
+    return player_data['elo_rank'].iloc[0], player_data['points'].iloc[0], player_data['bestRank'].iloc[0],\
+        player_data['bestRankDate'].iloc[0], player_data['rankDiff'].iloc[0], player_data['pointsDiff'].iloc[0],\
+        player_data['bestPoints'].iloc[0]
 
 
 def add_betting_to_matches():
@@ -410,7 +410,7 @@ def delete_irrelevant_features():
     Delete irrelevant feature (explain for each of them in the report).
     :return: save the new table to csv.
     """
-    features_to_delete = ['_merge', 'winner_seed', 'winner_entry', 'winner_name', 'loser_seed', 'loser_entry',
+    features_to_delete = ['winner_seed', 'winner_entry', 'winner_name', 'loser_seed', 'loser_entry',
                           'loser_name', 'elo_bestRankDate_loser', 'elo_bestRankDate_winner', 'elo_rankDiff_winner',
                           'elo_rankDiff_loser', 'elo_pointsDiff_winner', 'elo_pointsDiff_loser', 'loser_ioc',
                           'winner_ioc']
@@ -552,8 +552,8 @@ def main():
     add_player_id_to_betting()
     add_player_id_to_elo()
     add_elo_ranking_to_matches_by_year()
-    built_all_data_before_processing_table()
     add_betting_to_matches()
+    built_all_data_before_processing_table()
     plot_missing_values_present_per_feature()
     delete_irrelevant_features()
     add_scores_features()

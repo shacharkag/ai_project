@@ -22,6 +22,9 @@ def create_ranking_table():
     atp_ranks_00s = pd.read_csv('Data/atp_rankings_00s.csv')
     atp_ranks_10s = pd.read_csv('Data/atp_rankings_10s.csv')
 
+    atp_ranks_00s.rename(columns={'rank': 'atp_rank', 'points': 'atp_points'}, inplace=True)
+    atp_ranks_10s.rename(columns={'rank': 'atp_rank', 'points': 'atp_points'}, inplace=True)
+
     atp_ranks_00s['ranking_date'] = atp_ranks_00s['ranking_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
     atp_ranks_10s['ranking_date'] = atp_ranks_10s['ranking_date'].apply(lambda x: pd.to_datetime(str(x), format='%Y%m%d'))
 
